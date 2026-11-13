@@ -1,0 +1,31 @@
+services:
+  memos-ts:
+    hostname: memos
+    container_name: memos_ts
+    image: tailscale/tailscale:latest
+    environment:
+      - TS_AUTHKEY=$CLIENT_SECRET
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/ts.json
+    volumes:
+      - tailscale-data-memos:/var/lib/tailscale
+      - ./ts/config:/config
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    restart: unless-stopped
+
+  memos:
+    container_name: memos
+    image: neosmemo/memos:stable
+    network_mode: service:memos-ts
+    depends_on:
+      - memos-ts
+    volumes:
+      - ./data:/var/opt/memos
+    restart: unless-stopped
+
+volumes:
+  tailscale-data-memos:

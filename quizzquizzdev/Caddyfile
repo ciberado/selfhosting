@@ -1,0 +1,85 @@
+# Caddyfile for QuizzQuizz
+# Serves static files directly and proxies API requests to Node.js
+
+{
+    # Disable automatic HTTPS for local development
+    auto_https off
+    # Admin API disabled for simplicity
+    admin off
+}
+
+# Listen on port 80
+:80 {
+    # Enable compression
+    encode gzip
+
+    # API routes - proxy to Node.js API server
+    # Match both /api and /api/*
+    handle /api* {
+        reverse_proxy localhost:3000
+    }
+
+    # WebSocket routes - proxy to Node.js API server (Yjs real-time sync)
+    @ws {
+        header Connection *Upgrade*
+        header Upgrade websocket
+        path /ws/*
+    }
+    handle @ws {
+        reverse_proxy localhost:3000
+    }
+
+    handle /ws* {
+        reverse_proxy localhost:3000
+    }
+
+    # Health check endpoint - proxy to Node.js API server
+    handle /health {
+        reverse_proxy localhost:3000
+    }
+
+    # Host app - serve static files directly from filesystem
+    handle /host* {
+        root * /app/static/host-app
+        uri strip_prefix /host
+        try_files {path} /index.html
+        file_server
+    }
+
+    # Analytics UI - serve static files directly from filesystem
+    handle /analytics* {
+        root * /app/static/analytics-ui
+        uri strip_prefix /analytics
+        try_files {path} /index.html
+        file_server
+    }
+
+    # Flashcard app - serve static files directly from filesystem
+    handle /flashcard* {
+        root * /app/static/flashcard-app
+        uri strip_prefix /flashcard
+        try_files {path} /index.html
+        file_server
+    }
+
+    # Admin app - serve static files directly from filesystem
+    handle /admin* {
+        root * /app/static/admin-app
+        uri strip_prefix /admin
+        try_files {path} /index.html
+        file_server
+    }
+
+    # Player app - serve static files directly from filesystem (root and all other routes)
+    handle /* {
+        root * /app/static/player-app
+        try_files {path} /index.html
+        file_server
+    }
+
+    # Logging
+    log {
+        output stdout
+        format console
+    }
+}

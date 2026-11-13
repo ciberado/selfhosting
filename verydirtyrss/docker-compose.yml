@@ -1,0 +1,38 @@
+services:
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-verydirtyrss
+    hostname: verydirtyrss
+    environment:
+      - TS_AUTHKEY=${CLIENT_SECRET}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+      - TS_TAGS=${TS_TAGS:-tag:container}
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    restart: no
+    command: sh -c "tailscaled --tun=userspace-networking & sleep 5 && tailscale up --authkey=$${TS_AUTHKEY} --hostname=verydirtyrss --advertise-tags=$${TS_TAGS} && sleep 5 && tailscale serve --https=443 http://localhost:3000 && wait"
+
+  verydirtyrss:
+    image: ciberado/verydirtyrss:latest
+    container_name: verydirtyrss
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+    network_mode: "service:tailscale"
+    depends_on:
+      - tailscale
+    restart: no
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  tailscale-state:

@@ -1,0 +1,52 @@
+services:
+  app:
+    image: codeberg.org/readeck/readeck:latest
+    container_name: readeck
+    network_mode: service:ts
+    depends_on:
+      - ts
+    environment:
+      # Defines the application log level. Can be error, warn, info, debug.
+      - READECK_LOG_LEVEL=info
+      # The IP address on which Readeck listens.
+      - READECK_SERVER_HOST=0.0.0.0
+      # The TCP port on which Readeck listens. Update container port above to match (right of colon).
+      - READECK_SERVER_PORT=7777
+      # Optional, the URL prefix of Readeck.
+      # - READECK_SERVER_PREFIX=/
+      # Optional, a list of hostnames allowed in HTTP requests.
+      - READECK_ALLOWED_HOSTS=readeck.<TU-DOMINIO>,readeck.<TU-TAILNET>.ts.net
+    volumes:
+      - readeck-data:/readeck
+    restart: no
+    healthcheck:
+      test: ["CMD", "/bin/readeck", "healthcheck", "-config", "config.toml"]
+      interval: 30s
+      timeout: 2s
+      retries: 3
+
+  ts:
+    hostname: readeck
+    container_name: readeck_ts
+    image: tailscale/tailscale:latest
+    ports:
+      - 7777:7777
+    environment:
+      - TS_AUTHKEY=$CLIENT_SECRET
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_STATE_DIR=/var/lib/tailscale
+      # - TS_SERVE_CONFIG=/config/ts.json
+    volumes:
+      - tailscale-data-readeck:/var/lib/tailscale
+      - ./tsconfig:/config
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    restart: no
+
+volumes:
+  readeck-data:
+  tailscale-data-readeck:
+    driver: local
+

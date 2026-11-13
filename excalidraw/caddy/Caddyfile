@@ -1,0 +1,32 @@
+# Caddy listens on plain HTTP because TLS is already terminated
+# upstream (your external proxy) and forwards plain HTTP to this host.
+# Using a ":80" block (not a domain block) tells Caddy NOT to attempt
+# automatic HTTPS / ACME.
+
+:8080 {
+	# Caddy shares the tailscale container's network namespace, same
+	# as frontend (port 80) and room (port 8082) - so they're all
+	# reached via localhost here, not container hostnames.
+	# TS_SERVE_CONFIG (ts.json) should forward 443 -> 127.0.0.1:8080.
+
+	# Storage backend API (separate container/network, reachable by name)
+	handle /api/v2/* {
+		reverse_proxy storage:8081
+	}
+
+	# Room / websocket server (excalidraw-room, socket.io)
+	handle /socket.io/* {
+		reverse_proxy localhost:8082
+	}
+
+	# Everything else -> frontend
+	handle {
+		reverse_proxy localhost:80
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
+

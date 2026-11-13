@@ -1,0 +1,13 @@
+{
+    auto_https disable_redirects
+}
+
+# Replace with your actual Tailscale hostname
+miniflux.your-tailnet.ts.net {
+    reverse_proxy localhost:8080
+    
+    tls {
+        get_certificate tailscale
+    }
+}
+

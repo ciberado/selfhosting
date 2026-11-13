@@ -1,0 +1,23 @@
+# Secretos reales
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+pwfile
+secrets.yaml
+
+# Datos persistentes y estado
+data/
+*-data/
+logs/
+log/
+cache/
+postgres/
+*.db
+*.db-*
+*.sqlite*
+*.bak
+*.bk
+*.log
+tailscale-data/

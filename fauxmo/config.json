@@ -1,0 +1,17 @@
+{    "FAUXMO": {
+        "ip_address": "auto"
+    },
+    "PLUGINS": {
+        "SimpleHTTPPlugin": {
+            "DEVICES": [
+                {
+                    "port": 12340,
+                    "on_cmd": "https://home.<TU-TAILNET>.ts.net/api/webhook/<ESCRIBE AQUÍ ID DEL WEBHOOK>",
+                    "off_cmd": "https://home.<TU-TAILNET>.ts.net/api/webhook/<ESCRIBE AQUÍ ID DEL WEBHOOK>",
+                    "method": "POST",
+                    "name": "aire"
+                }
+            ]
+        }
+    }
+}

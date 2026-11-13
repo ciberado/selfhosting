@@ -1,0 +1,54 @@
+services:
+  ha-server:
+    container_name: ha_server
+    image: ghcr.io/home-assistant/home-assistant:stable
+    network_mode: service:ha-ts
+    volumes:
+      - ./config:/config
+    environment:
+      - TZ=Europe/Madrid
+    depends_on:
+      - ha-ts
+    restart: no
+
+  whisper:
+    image: rhasspy/wyoming-whisper
+    container_name: wyoming-whisper
+    command: --model small-int8 --language es
+    volumes:
+      - ./whisper-data:/data
+    ports:
+      - "10300:10300"
+    restart: no
+
+  piper:
+    image: rhasspy/wyoming-piper
+    container_name: wyoming-piper
+    command: --voice es_ES-davefx-medium
+    volumes:
+      - ./piper-data:/data
+    ports:
+      - "10200:10200"
+    restart: no
+
+  ha-ts:
+    hostname: home
+    container_name: ha_ts
+    image: tailscale/tailscale:latest
+    environment:
+      - TS_AUTHKEY=$CLIENT_SECRET
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/ha.json
+    volumes:
+      - tailscale-data-ha:/var/lib/tailscale
+      - ./ha-ts/config:/config
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    restart: no
+
+volumes:
+  tailscale-data-ha:
+    driver: local

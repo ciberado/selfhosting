@@ -1,0 +1,34 @@
+services:
+  jellyfin:
+    image: jellyfin/jellyfin
+    depends_on:
+      - ts-jellyfin
+    network_mode: service:ts-jellyfin
+    volumes:
+      - ./config/:/config
+      - ./cache:/cache
+      - ${MEDIA_PATH:?set MEDIA_PATH}:/data
+    restart: on-failure
+    environment:
+      - JELLYFIN_PublishedServerUrl=https://jellyfin.<TU-TAILNET>.ts.net
+
+  ts-jellyfin:
+    image: tailscale/tailscale:latest
+    hostname: jellyfin
+    environment:
+      - TS_AUTHKEY=$CLIENT_SECRET
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/jellyfin.json
+    volumes:
+      - tailscale-data-jellyfin:/var/lib/tailscale
+      - ./ts-jellyfin/config:/config
+      - /dev/net/tun:/dev/net/tun
+      - ./nginx/conf/:/certs
+    cap_add:
+      - net_admin
+      - sys_module
+    restart: on-failure
+volumes:
+  tailscale-data-jellyfin:
+    driver: local

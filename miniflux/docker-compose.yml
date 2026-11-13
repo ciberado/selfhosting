@@ -1,0 +1,58 @@
+services:
+  miniflux-server:
+    container_name: miniflux_server
+    image: miniflux/miniflux:latest
+    network_mode: service:miniflux-ts
+    depends_on:
+      miniflux-ts:
+        condition: service_started
+      db:
+        condition: service_healthy
+    restart: no
+    environment:
+      - DATABASE_URL=postgres://miniflux:<ESCRIBE AQUÍ PASSWORD DE POSTGRES>@db/miniflux?sslmode=disable
+      - RUN_MIGRATIONS=1
+      - CREATE_ADMIN=1
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=<ESCRIBE AQUÍ PASSWORD DEL ADMIN DE MINIFLUX>
+      - MEDIA_PROXY_MODE=all
+      - MEDIA_PROXY_RESOURCE_TYPES=image
+      - FETCHER_ALLOW_PRIVATE_NETWORKS=1
+      - INTEGRATION_ALLOW_PRIVATE_NETWORKS=1
+
+  db:
+    container_name: miniflux_db
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_USER=miniflux
+      - POSTGRES_PASSWORD=<ESCRIBE AQUÍ PASSWORD DE POSTGRES>
+      - POSTGRES_DB=miniflux
+    volumes:
+      - miniflux-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "miniflux"]
+      interval: 10s
+      start_period: 30s
+
+
+  miniflux-ts:
+    hostname: miniflux
+    container_name: miniflux_ts
+    image: tailscale/tailscale:latest
+    environment:
+      - TS_AUTHKEY=$CLIENT_SECRET
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+    volumes:
+      - tailscale-data-miniflux:/var/lib/tailscale
+      - ./miniflux-ts/config:/config
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    restart: no
+
+
+volumes:
+  tailscale-data-miniflux:
+    driver: local
+  miniflux-db:

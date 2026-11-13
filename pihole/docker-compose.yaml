@@ -1,0 +1,31 @@
+services:
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: tailscale
+    hostname: pihole
+    environment:
+      - TS_AUTHKEY=$CLIENT_SECRET
+      - TS_EXTRA_ARGS=--accept-dns=false --advertise-tags=tag:container
+      - TS_STATE_DIR=/var/lib/tailscale
+    dns:
+      - 127.0.0.1
+      - 1.1.1.1
+    restart: no
+    volumes:
+      - ./tailscale-data:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    network_mode: "service:tailscale" 
+    environment:
+      TZ: 'Europe/Madrid' # Set to your timezone
+    volumes:
+      - './etc-pihole:/etc/pihole'
+      - './etc-dnsmasq.d:/etc/dnsmasq.d'
+    restart: no
+

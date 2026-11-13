@@ -1,0 +1,69 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: excalidraw_caddy
+    restart: no
+    # Shares the Tailscale container's network namespace so it's
+    # reachable via TS_SERVE_CONFIG (Funnel only exposes 443).
+    # No "ports:" needed - nothing is published to the host directly.
+    network_mode: service:excalidraw-ts
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - excalidraw-ts
+      - storage
+
+  frontend:
+    image: alswl/excalidraw:v0.18.1-fork-b2
+    environment:
+      # All requests now go through the single Caddy endpoint, path-routed.
+      - VITE_APP_BACKEND_V2_GET_URL=https://wb.<TU-DOMINIO>/api/v2/scenes/
+      - VITE_APP_BACKEND_V2_POST_URL=https://wb.<TU-DOMINIO>/api/v2/scenes/
+      - VITE_APP_WS_SERVER_URL=https://wb.<TU-DOMINIO>
+      - VITE_APP_FIREBASE_CONFIG={}
+      # alswl'fork env
+      # forked excalidraw can use env https://github.com/alswl/excalidraw/pull/5
+      - VITE_APP_HTTP_STORAGE_BACKEND_URL=https://wb.<TU-DOMINIO>/api/v2
+      - VITE_APP_STORAGE_BACKEND=http
+    network_mode: service:excalidraw-ts
+
+  storage:
+    image: alswl/excalidraw-storage-backend:v2023.11.11
+    restart: no
+    environment:
+      - PORT=8081
+
+  room:
+    image: excalidraw/excalidraw-room:sha-49bf529
+    network_mode: service:excalidraw-ts
+    environment:
+      - PORT=8082
+
+  excalidraw-ts:
+    hostname: excalidraw
+    container_name: excalidraw_ts
+    image: tailscale/tailscale:latest
+    environment:
+      - TS_AUTHKEY=$CLIENT_SECRET
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/ts.json
+    volumes:
+      - tailscale-data-excalidraw:/var/lib/tailscale
+      - ./ts/config:/config
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    restart: no
+
+
+volumes:
+  tailscale-data-excalidraw:
+    driver: local
+  caddy-data:
+    driver: local
+  caddy-config:
+    driver: local

@@ -1,0 +1,41 @@
+services:
+  calibre-web-automated-book-downloader:
+    image: ghcr.io/calibrain/shelfmark:latest
+    container_name: shelfmark
+    network_mode: service:ts
+    depends_on:
+      - ts
+    environment:
+      - TZ=Europe/Madrid
+      - PUID=1000
+      - PGID=1000
+      - CWA_DB_PATH=/calibre-config/app.db
+    volumes:
+      #- ${BOOKS_INGEST_PATH}/../cwa-book-ingest:/cwa-book-ingest
+      - ./config/downloader:/config # App configuration
+      - ./config/calibre:/calibre-config
+      - ${BOOKS_INGEST_PATH:?set BOOKS_INGEST_PATH}:/books
+    restart: on-failure
+
+  ts:
+    hostname: autobook
+    container_name: autobook_ts
+    image: tailscale/tailscale:latest
+    environment:
+      - TS_AUTHKEY=$CLIENT_SECRET
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container --exit-node=100.70.51.75 --exit-node-allow-lan-access
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/ts.json
+      - TS_USERSPACE=false
+    volumes:
+      - tailscale-data-autobook:/var/lib/tailscale
+      - ./tsconfig:/config
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    restart: on-failure
+
+volumes:
+  tailscale-data-autobook:
+    driver: local
